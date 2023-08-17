@@ -1,32 +1,32 @@
 {
-  "name": "three-base",
+  "name": "three-base-next",
+  "version": "0.1.0",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "three": "^0.155.0",
-    "tweakpane": "^4.0.0",
-    "vite-plugin-glsl": "^1.1.2"
-  },
-  "devDependencies": {
-    "@types/react": "^18.2.15",
-    "@types/react-dom": "^18.2.7",
-    "@vitejs/plugin-react": "^4.0.3",
-    "autoprefixer": "^10.4.14",
-    "eslint": "^8.45.0",
-    "eslint-plugin-react": "^7.32.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.3",
-    "postcss": "^8.4.27",
-    "tailwindcss": "^3.3.3",
-    "vite": "^4.4.5"
+    "@next/bundle-analyzer": "^13.4.1",
+    "@tweakpane/plugin-essentials": "^0.1.8",
+    "autoprefixer": "10.4.15",
+    "detect-gpu": "^5.0.31",
+    "eventemitter3": "^5.0.1",
+    "glsl-blend": "^1.0.3",
+    "glsl-noise": "^0.0.0",
+    "glsl-tone-map": "^2.0.1",
+    "glslify-loader": "^2.0.0",
+    "gsap": "^3.11.5",
+    "next": "13.4.17",
+    "postcss": "8.4.28",
+    "raw-loader": "^4.0.2",
+    "react-dom": "18.2.0",
+    "react": "18.2.0",
+    "tailwindcss": "3.3.3",
+    "three": "^0.152.2",
+    "tweakpane": "^3.1.9",
+    "zustand": "^4.3.7"
   }
 }
