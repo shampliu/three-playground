@@ -1,13 +1,11 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-
-import { GPUComputationRenderer } from "three/examples/jsm/misc/GPUComputationRenderer";
+import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
 import { Pane } from "tweakpane";
 import vertexShader from "./shaders/sampleVertex.glsl";
 import fragmentShader from "./shaders/sampleFragment.glsl";
 import { createPointsGeometryForSkin } from "./util/createSkinnedMeshSurfaceSampler";
-import { createVertexStore } from "./util/gpgpu";
 
 let scene,
   renderer,
@@ -21,14 +19,13 @@ let scene,
   loader,
   pane,
   textureLoader,
-  fog,
-  gpuCompute;
+  fog;
 
 const UNIFORMS = {
   backgroundColor: 0xffae70,
 };
 
-export const initGPURendererScene = async (container) => {
+export const initSkinnedSamplerScene = async (container) => {
   pane = new Pane();
   clock = new THREE.Clock();
 
@@ -39,7 +36,7 @@ export const initGPURendererScene = async (container) => {
     10000
   );
 
-  camera.position.set(0, 8, 30);
+  camera.position.set(0, 8, 120);
 
   renderer = new THREE.WebGLRenderer({
     logarithmicDepthBuffer: true,
@@ -68,25 +65,15 @@ export const initGPURendererScene = async (container) => {
   update();
 };
 
-const initGPGPU = (sampleGeometry, mesh) => {
-  // GPU Compute
-  const colorMap = new THREE.Texture();
-
-  const vertexStore = createVertexStore(sampleGeometry, colorMap);
-  gpuCompute = new GPUComputationRenderer(
-    vertexStore.mapWidth,
-    vertexStore.mapHeight,
-    renderer
-  );
-
-  mesh.material = vertexStore.material;
-  mesh.geometry = vertexStore.geometry;
-};
-
 const initObjects = async () => {
   loader = new GLTFLoader();
 
-  const gltf = await loader.loadAsync("models/carla.glb");
+  const test = new THREE.Mesh(
+    new THREE.BoxGeometry(),
+    new THREE.MeshBasicMaterial({ color: "red" })
+  );
+
+  const gltf = await loader.loadAsync("models/capoeira.glb");
   console.log(gltf);
 
   mixer = new THREE.AnimationMixer(gltf.scene);
@@ -95,18 +82,54 @@ const initObjects = async () => {
   action.setEffectiveWeight(1);
   action.play();
 
+  // gltf.scene.traverse((o) => {
+  //   if (o.isMesh) {
+  //     console.log(o);
+
+  //     const sampleGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+  //     const sampleMaterial = new THREE.MeshBasicMaterial({ color: "yellow " });
+
+  //     const sampler = new MeshSurfaceSampler(o)
+  //       .setWeightAttribute("color")
+  //       .build();
+
+  //     const mesh = new THREE.InstancedMesh(sampleGeometry, sampleMaterial, 100);
+
+  //     const position = new THREE.Vector3();
+  //     const matrix = new THREE.Matrix4();
+
+  //     // Sample randomly from the surface, creating an instance of the sample
+  //     // geometry at each sample point.
+  //     for (let i = 0; i < 100; i++) {
+  //       sampler.sample(position);
+
+  //       matrix.makeTranslation(position.x, position.y, position.z);
+
+  //       mesh.setMatrixAt(i, matrix);
+  //     }
+
+  //     scene.add(mesh);
+  //   }
+  // });
+
   gltf.scene.traverse((o) => {
-    if (o instanceof THREE.SkinnedMesh) {
+    if (o.isMesh && o instanceof THREE.SkinnedMesh) {
       console.log(o.skeleton);
 
       const sampleGeometry = createPointsGeometryForSkin(o, 5000);
-      initGPGPU(sampleGeometry, o);
       // const sampleMaterial = new THREE.PointsMaterial({
       //   color: "white",
       //   size: 0.5,
       // });
 
+      // o.updateMatrixWorld(true);
+
+      // o.skeleton.calculateInverses();
+
+      // o.bindMatrix.copy(o.matrixWorld);
+      // o.bindMatrixInverse.copy(o.bindMatrix).invert();
       o.skeleton.computeBoneTexture();
+
       const sampleMaterial = new THREE.RawShaderMaterial({
         uniforms: {
           bindMatrix: {
@@ -134,14 +157,18 @@ const initObjects = async () => {
     }
   });
 
+  const group = new THREE.Group();
   scene.add(gltf.scene);
+  // group.scale.set(0.1, 0.1, 0.1);
+
+  // scene.add(group);
   // scene.add(test);
 };
 
 const update = () => {
   const delta = clock.getDelta();
 
-  mixer.update(delta * 0.04);
+  mixer.update(delta * 0.01);
 
   orbitControls.update();
 

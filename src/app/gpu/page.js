@@ -1,10 +1,10 @@
-import { PointCloudScene } from "@/components/PointCloudScene";
+import { GPURendererScene } from "@/components/GPURendererScene";
 
 export default function Home() {
   return (
     <>
       {/* <div>Hello World</div> */}
-      <PointCloudScene />
+      <GPURendererScene />
     </>
   );
 }

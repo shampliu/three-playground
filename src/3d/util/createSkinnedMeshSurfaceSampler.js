@@ -1,6 +1,73 @@
 import { MeshSurfaceSampler } from "three/addons/math/MeshSurfaceSampler.js";
 import * as THREE from "three";
 
+export function createInstancedGeometryForSkin(
+  skinnedMesh,
+  numSamples,
+  geometry
+) {
+  const sampler = createSkinnedMeshSurfaceSampler(skinnedMesh);
+  const sample = {
+    position: new THREE.Vector3(),
+    normal: new THREE.Vector3(),
+    skinIndex: new THREE.Vector4(),
+    skinWeight: new THREE.Vector4(),
+    uv: new THREE.Vector2(),
+  };
+
+  const positions = new Float32Array(numSamples * 3);
+  const normals = new Float32Array(numSamples * 3);
+  const uvs = new Float32Array(numSamples * 2);
+  const skinIndices = new Uint16Array(numSamples * 4);
+  const skinWeights = new Float32Array(numSamples * 4);
+  for (let i = 0; i < numSamples; i++) {
+    sampler(
+      sample.position,
+      sample.normal,
+      sample.uv,
+      sample.skinIndex,
+      sample.skinWeight
+    );
+
+    positions[i * 3 + 0] = sample.position.x;
+    positions[i * 3 + 1] = sample.position.y;
+    positions[i * 3 + 2] = sample.position.z;
+
+    normals[i * 3 + 0] = sample.normal.x;
+    normals[i * 3 + 1] = sample.normal.y;
+    normals[i * 3 + 2] = sample.normal.z;
+
+    uvs[i * 2 + 0] = sample.uv.x;
+    uvs[i * 2 + 1] = sample.uv.y;
+
+    skinIndices[i * 4 + 0] = sample.skinIndex.x;
+    skinIndices[i * 4 + 1] = sample.skinIndex.y;
+    skinIndices[i * 4 + 2] = sample.skinIndex.z;
+    skinIndices[i * 4 + 3] = sample.skinIndex.w;
+
+    skinWeights[i * 4 + 0] = sample.skinWeight.x;
+    skinWeights[i * 4 + 1] = sample.skinWeight.y;
+    skinWeights[i * 4 + 2] = sample.skinWeight.z;
+    skinWeights[i * 4 + 3] = sample.skinWeight.w;
+  }
+
+  geometry.setAttribute(
+    "iPosition",
+    new THREE.InstancedBufferAttribute(positions, 3)
+  );
+  geometry.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute(
+    "iSkinIndex",
+    new THREE.InstancedBufferAttribute(skinIndices, 4)
+  );
+  geometry.setAttribute(
+    "iSkinWeight",
+    new THREE.InstancedBufferAttribute(skinWeights, 4)
+  );
+  return geometry;
+}
+
 export function createPointsGeometryForSkin(skinnedMesh, numSamples) {
   const sampler = createSkinnedMeshSurfaceSampler(skinnedMesh);
   const sample = {

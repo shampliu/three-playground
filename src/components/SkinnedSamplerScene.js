@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { SkinnedSamplerScene } from "@/3d/skinned-sampler";
+import { initSkinnedSamplerScene } from "@/3d/skinned-sampler";
 
-export const Scene = () => {
+export const SkinnedSamplerScene = () => {
   const containerRef = useRef();
   useEffect(() => {
-    SkinnedSamplerScene(containerRef.current);
-  });
+    initSkinnedSamplerScene(containerRef.current);
+  }, []);
   return (
     <div ref={containerRef} className="fixed top-0 left-0 w-full h-full" />
   );

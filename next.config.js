@@ -13,6 +13,9 @@ const nextConfig = {
 
     return config;
   },
+  experimental: {
+    serverActions: true,
+  },
 };
 
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
