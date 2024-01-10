@@ -31,7 +31,9 @@ const UNIFORMS = {
   uDimensions: { value: new THREE.Vector2() },
 };
 
-let scene1, scene2, composer1;
+let scene1, scene2, composer1, composer2, rt;
+
+let video;
 
 export const initVisualizerScene = async (container) => {
   pane = new Pane();
@@ -53,13 +55,16 @@ export const initVisualizerScene = async (container) => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 
   scene1 = new THREE.Scene();
-  scene1.background = new THREE.Color(UNIFORMS.backgroundColor);
+  // scene1.background = new THREE.Color(UNIFORMS.backgroundColor);
 
   scene2 = new THREE.Scene();
   scene2.background = new THREE.Color("yellow");
 
   composer1 = new EffectComposer(renderer);
   composer1.addPass(new RenderPass(scene1, camera));
+
+  composer2 = new EffectComposer(renderer, rt);
+  composer2.addPass(new RenderPass(scene2, camera));
 
   const textureLoader = new THREE.TextureLoader();
   const tChar1 = await textureLoader.loadAsync("/msdf/plus.png");
@@ -75,13 +80,13 @@ export const initVisualizerScene = async (container) => {
   ASCIIPass.uniforms.uASCIISize = UNIFORMS.uASCIISize;
   ASCIIPass.uniforms.uNumCharacters = UNIFORMS.uNumCharacters;
   ASCIIPass.uniforms.tFont.value = createFontTexture();
-  composer1.addPass(ASCIIPass);
+  // composer1.addPass(ASCIIPass);
 
   // LIGHTING
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // 0.2
   scene1.add(ambientLight);
 
-  const sun = new THREE.DirectionalLight(0xffffff, 1);
+  const sun = new THREE.DirectionalLight(0xffffff, 10);
   scene1.add(sun);
 
   orbitControls = new OrbitControls(camera, renderer.domElement);
@@ -94,6 +99,7 @@ export const initVisualizerScene = async (container) => {
   initGUI();
 
   await initObjects();
+  initVideo();
 
   RAF.init();
   RAF.subscribe("main", update);
@@ -109,13 +115,41 @@ const handleResize = () => {
   UNIFORMS.uResolution.value.set(window.innerWidth, window.innerHeight);
 };
 
+const initVideo = () => {
+  video = document.getElementById("webcam");
+  const texture = new THREE.VideoTexture(video);
+  texture.colorSpace = THREE.SRGBColorSpace;
+
+  const geometry = new THREE.PlaneGeometry(16, 9);
+  // geometry.scale( 0.5, 0.5, 0.5 );
+  const material = new THREE.MeshBasicMaterial({ map: texture });
+
+  const mesh = new THREE.Mesh(geometry, material);
+  scene1.add(mesh);
+
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    const constraints = {
+      video: { width: 1280, height: 720, facingMode: "user" },
+    };
+
+    navigator.mediaDevices
+      .getUserMedia(constraints)
+      .then(function (stream) {
+        // apply the stream to the video element used in the texture
+
+        video.srcObject = stream;
+        video.play();
+      })
+      .catch(function (error) {
+        console.error("Unable to access the camera/webcam.", error);
+      });
+  } else {
+    console.error("MediaDevices interface not available.");
+  }
+};
+
 const initObjects = async () => {
   loader = new GLTFLoader();
-
-  // const test = new THREE.Mesh(
-  //   new THREE.BoxGeometry(),
-  //   new THREE.MeshBasicMaterial({ color: "red" })
-  // );
 
   const model = await loader.loadAsync(
     "https://threejs.org/examples/models/gltf/Soldier.glb"
@@ -123,6 +157,24 @@ const initObjects = async () => {
   model.scene.scale.set(5, 5, 5);
 
   scene1.add(model.scene);
+
+  // RENDER TARGETS
+  rt = new THREE.WebGLRenderTarget(512, 512, { format: THREE.RGBAFormat });
+  const screenMaterial = new THREE.MeshBasicMaterial({
+    map: rt.texture,
+    // color: "red",
+  });
+  const planeGeometry = new THREE.PlaneGeometry(20, 10, 1, 1);
+  const plane = new THREE.Mesh(planeGeometry, screenMaterial);
+  plane.position.set(0, 2, -20);
+  scene1.add(plane);
+
+  const test = new THREE.Mesh(
+    new THREE.BoxGeometry(),
+    new THREE.MeshBasicMaterial({ color: "red" })
+  );
+
+  scene2.add(test);
 };
 
 const initGUI = () => {
@@ -140,19 +192,30 @@ const initGUI = () => {
   });
 };
 
+let pingPong = false;
+
 const update = () => {
   const delta = clock.getDelta();
 
   orbitControls.update();
+
+  composer1.render(delta);
+
+  // if (pingPong) {
+  //   renderer.setRenderTarget(rt);
+  //   renderer.render(scene2, camera);
+  // } else {
+  //   renderer.setRenderTarget(null);
+  //   renderer.render(scene1, camera);
+  // }
+
+  pingPong = !pingPong;
 
   // scene1.position.z = scene1.position.z + 0.01;
 
   if (scene1.position.z >= 5) {
     scene1.position.z = 0;
   }
-
-  // renderer.render(scene1, camera);
-  composer1.render(delta);
 };
 
 // TODO: refactor?

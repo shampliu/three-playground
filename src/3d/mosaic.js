@@ -20,9 +20,11 @@ let scene,
 
 const UNIFORMS = {
   backgroundColor: 0xffae70,
+
+  // textures: Array.from({ length: })
 };
 
-export const initScene = async (container) => {
+export const initMosaicScene = async (container) => {
   pane = new Pane();
   clock = new THREE.Clock();
 
@@ -66,12 +68,43 @@ export const initScene = async (container) => {
 const initObjects = async () => {
   loader = new GLTFLoader();
 
-  const test = new THREE.Mesh(
-    new THREE.BoxGeometry(),
-    new THREE.MeshBasicMaterial({ color: "red" })
-  );
+  const video = document.createElement("video");
+  video.muted = true;
+  video.autoplay = true;
+  video.crossOrigin = "anonymous";
+  video.src = "https://oframe.github.io/ogl/examples/assets/laputa.mp4";
+  video.play();
+  video.loop = true;
 
-  scene.add(test);
+  const t = new THREE.VideoTexture(video);
+  window.t = t;
+
+  const planeWidth = 10;
+  const planeHeight = 10;
+  const numCols = 3;
+  const numRows = 3;
+  const numPlanes = 9;
+
+  const group = new THREE.Group();
+  const p = new THREE.Vector3();
+  for (let i = 0; i < numPlanes; i++) {
+    const r = Math.floor(i / numRows); // 0
+    const c = i % numCols; // 0
+
+    p.x = (c - numCols / 2) * planeWidth;
+    p.y = (r - numRows / 2) * planeHeight;
+
+    const plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(planeWidth, planeHeight),
+      new THREE.MeshBasicMaterial({ map: t })
+    );
+
+    plane.position.copy(p);
+
+    group.add(plane);
+  }
+
+  scene.add(group);
 };
 
 const update = () => {

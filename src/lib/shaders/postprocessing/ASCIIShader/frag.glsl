@@ -3,6 +3,7 @@ uniform sampler2D tDiffuse;
 uniform float uASCIISize;
 uniform sampler2D tFont;
 uniform float uNumCharacters;
+uniform vec2 uDimensions;
 
 uniform vec2 uResolution;
 
@@ -43,13 +44,13 @@ void main() {
 
   float charIndex = floor(greyscale * (uNumCharacters - 1.));
 
-  vec2 size = vec2(16.);
-  float charX = mod(charIndex, size.x);
-  float charY = floor(charIndex / size.y);
-  vec2 charUV = mod(vUv * (divisions/size), 1./size);
 
-  charUV -= vec2(0., 1. / size);
-  vec2 offset = vec2(charX, -charY) / size;
+  float charX = mod(charIndex, uDimensions.x);
+  float charY = floor(charIndex / uDimensions.y);
+  vec2 charUV = mod(vUv * (divisions/uDimensions), 1./uDimensions);
+
+  charUV -= vec2(0., 1. / uDimensions);
+  vec2 offset = vec2(charX, -charY) / uDimensions;
   charUV += offset;
 
   vec4 ascii = texture2D(tFont, charUV);
