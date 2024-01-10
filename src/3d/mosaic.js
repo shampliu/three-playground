@@ -16,13 +16,22 @@ let scene,
   loader,
   pane,
   textureLoader,
-  fog;
+  fog,
+  frameDelta = 0;
+
+let ctx, canvas, canvasTexture, video;
+
+const FPS = 24;
+const INTERVAL = 1 / FPS;
+const NUM_PLANES = 9;
 
 const UNIFORMS = {
   backgroundColor: 0xffae70,
 
-  // textures: Array.from({ length: })
+  textures: null,
 };
+
+console.log(UNIFORMS.textures);
 
 export const initMosaicScene = async (container) => {
   pane = new Pane();
@@ -68,35 +77,46 @@ export const initMosaicScene = async (container) => {
 const initObjects = async () => {
   loader = new GLTFLoader();
 
-  const video = document.createElement("video");
+  video = document.createElement("video");
   video.muted = true;
   video.autoplay = true;
   video.crossOrigin = "anonymous";
-  video.src = "https://oframe.github.io/ogl/examples/assets/laputa.mp4";
+  // video.src = "https://oframe.github.io/ogl/examples/assets/laputa.mp4";
+  video.src = "/laputa.mp4";
   video.play();
   video.loop = true;
 
-  const t = new THREE.VideoTexture(video);
-  window.t = t;
+  // init texture uniforms here because requires document object
+  UNIFORMS.textures = Array.from({ length: NUM_PLANES })
+    .fill(0)
+    .map(() => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 512;
+      canvas.height = 512;
+
+      return {
+        ctx: canvas.getContext("2d"),
+        value: new THREE.CanvasTexture(canvas),
+      };
+    });
 
   const planeWidth = 10;
   const planeHeight = 10;
   const numCols = 3;
   const numRows = 3;
-  const numPlanes = 9;
 
   const group = new THREE.Group();
   const p = new THREE.Vector3();
-  for (let i = 0; i < numPlanes; i++) {
+  for (let i = 0; i < NUM_PLANES; i++) {
     const r = Math.floor(i / numRows); // 0
     const c = i % numCols; // 0
 
     p.x = (c - numCols / 2) * planeWidth;
-    p.y = (r - numRows / 2) * planeHeight;
+    p.y = (r - numRows / 2) * -planeHeight;
 
     const plane = new THREE.Mesh(
       new THREE.PlaneGeometry(planeWidth, planeHeight),
-      new THREE.MeshBasicMaterial({ map: t })
+      new THREE.MeshBasicMaterial({ map: UNIFORMS.textures[i].value })
     );
 
     plane.position.copy(p);
@@ -108,9 +128,38 @@ const initObjects = async () => {
 };
 
 const update = () => {
-  const delta = clock.getDelta();
+  frameDelta += clock.getDelta();
+  if (frameDelta > INTERVAL) {
+    frameDelta = frameDelta % INTERVAL;
+
+    updateVideo();
+  }
 
   orbitControls.update();
 
   renderer.render(scene, camera);
+};
+
+const updateVideo = () => {
+  const { ctx, value: canvasTexture } = UNIFORMS.textures[0];
+  const canvas = ctx.canvas;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  canvasTexture.needsUpdate = true;
+
+  for (let i = NUM_PLANES - 1; i >= 0; i--) {
+    const { ctx, value: canvasTexture } = UNIFORMS.textures[i];
+    const canvas = ctx.canvas;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (i === 0) {
+      // non-delayed
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.drawImage(UNIFORMS.textures[i - 1].ctx.canvas, 0, 0);
+    }
+
+    canvasTexture.needsUpdate = true;
+  }
 };
